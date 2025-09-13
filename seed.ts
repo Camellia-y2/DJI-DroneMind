@@ -67,13 +67,13 @@ const scrapePage = async (url: string, retries: number = 3) => {
         },
         evaluate: async(page, browser) => {
           const result = await page.evaluate(() => {
-            // 只搜索 detailed-parameter-wrap 板块，并提取前三个 specs-parameter-wrap 的内容
+            // 只搜索 detailed-parameter-wrap 板块，并提取前六个 specs-parameter-wrap 的内容
             const targetElement = document.querySelector('.detailed-parameter-wrap');
             if (!targetElement) return '';
 
             const parameterWraps = targetElement.querySelectorAll('.specs-parameter-wrap');
-            const contentArray = Array.from(parameterWraps).slice(0, 2).map(div => div.innerHTML);
-            return contentArray.join('\n'); // 将前两个内容合并为一个字符串
+            const contentArray = Array.from(parameterWraps).slice(0, 6).map(div => div.innerHTML);
+            return contentArray.join('\n'); // 将前六个内容合并为一个字符串
           });
           await browser.close();
           return result;
