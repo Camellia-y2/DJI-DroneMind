@@ -35,7 +35,7 @@ async function fetchRelevantContext(embedding: number[]) {
   const { data, error } = await supabase.rpc("get_relevant_chunks", {
     query_vector: embedding,
     match_threshold: 0.2,
-    match_count: 3
+    match_count: 6
   });
   
   console.log('=== RPC 调用结果 ===');
