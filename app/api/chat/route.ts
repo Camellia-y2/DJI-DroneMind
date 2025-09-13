@@ -96,12 +96,70 @@ const createPrompt = (context: string, userQuestion: string) => {
   }
 }
 
+// 将机型名称转换为知识库格式：小写+连字符，移除DJI前缀
+function normalizeDroneModelInText(text: string): string {
+  // 常见的DJI机型模式匹配（不区分大小写，包含DJI前缀）
+  const dronePatterns = [
+    /dji\s*mavic\s*4\s*pro/gi,
+    /dji\s*mavic\s*3\s*pro/gi,
+    /dji\s*mavic\s*3\s*classic/gi,
+    /dji\s*mavic\s*3/gi,
+    /dji\s*mini\s*4\s*pro/gi,
+    /dji\s*mini\s*3/gi,
+    /dji\s*air\s*3s/gi,
+    /dji\s*air\s*3/gi,
+    /dji\s*air\s*2s/gi,
+    /dji\s*neo/gi,
+    /dji\s*inspire\s*3/gi,
+    /dji\s*inspire\s*2/gi,
+    /dji\s*avata\s*2/gi,
+    /dji\s*phantom\s*4/gi,
+    /dji\s*phantom\s*3/gi,
+    // 也匹配没有DJI前缀的情况
+    /mavic\s*4\s*pro/gi,
+    /mavic\s*3\s*pro/gi,
+    /mavic\s*3\s*classic/gi,
+    /mavic\s*3/gi,
+    /mini\s*4\s*pro/gi,
+    /mini\s*3/gi,
+    /air\s*3s/gi,
+    /air\s*3/gi,
+    /air\s*2s/gi,
+    /neo/gi,
+    /inspire\s*3/gi,
+    /inspire\s*2/gi,
+    /avata\s*2/gi,
+    /phantom\s*4/gi,
+    /phantom\s*3/gi
+  ];
+  
+  let normalizedText = text;
+  
+  // 替换所有匹配的机型名称为知识库格式
+  dronePatterns.forEach(pattern => {
+    normalizedText = normalizedText.replace(pattern, (match) => {
+      // 移除DJI前缀，转换为小写，空格替换为连字符
+      let model = match.toLowerCase().replace(/^dji\s*/i, '').trim();
+      model = model.replace(/\s+/g, '-');
+      return model;
+    });
+  });
+  
+  return normalizedText;
+}
+
 export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
     const latestMessage = messages.at(-1).content;
+    
+    // 只转换机型名称（英文部分）为小写，保持中文不变
+    const normalizedMessage = normalizeDroneModelInText(latestMessage);
+    console.log('原始输入:', latestMessage);
+    console.log('标准化输入:', normalizedMessage);
+    
     // embedding
-    const { embedding } = await generateEmbedding(latestMessage);
+    const { embedding } = await generateEmbedding(normalizedMessage);
     // console.log(embedding);
     // 相似度计算
     const context = await fetchRelevantContext(embedding);
