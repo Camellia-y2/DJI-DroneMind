@@ -27,6 +27,19 @@ const openai = createOpenAI({
 // supabase 去做向量化的知识库数据
 console.log("开始向量化知识库数据爬取");
 
+// 从 URL 中提取模型名称的函数
+const extractModelName = (url: string): string => {
+  try {
+    const urlParts = url.split('/');
+    // 获取倒数第二个部分作为模型名称
+    const modelName = urlParts[urlParts.length - 2];
+    return modelName || 'unknown';
+  } catch (error) {
+    console.error('提取模型名称失败:', error);
+    return 'unknown';
+  }
+};
+
 // 知识库构建
 const scrapePage = async (url: string, retries: number = 3) => {
   for (let attempt = 1; attempt <= retries; attempt++) {
@@ -53,7 +66,15 @@ const scrapePage = async (url: string, retries: number = 3) => {
           timeout: 60000, // 增加超时时间到60秒
         },
         evaluate: async(page, browser) => {
-          const result = await page.evaluate(() => document.body.innerHTML);
+          const result = await page.evaluate(() => {
+            // 只搜索 detailed-parameter-wrap 板块，并提取前三个 specs-parameter-wrap 的内容
+            const targetElement = document.querySelector('.detailed-parameter-wrap');
+            if (!targetElement) return '';
+
+            const parameterWraps = targetElement.querySelectorAll('.specs-parameter-wrap');
+            const contentArray = Array.from(parameterWraps).slice(0, 2).map(div => div.innerHTML);
+            return contentArray.join('\n'); // 将前两个内容合并为一个字符串
+          });
           await browser.close();
           return result;
         }
@@ -73,7 +94,6 @@ const scrapePage = async (url: string, retries: number = 3) => {
   
   throw new Error(`所有重试都失败了`);
 }
-
 const loadData = async (webpages: string[]) => {
     // 创建递归文本分割器
     // 将爬虫爬取到的网页内容进行递归分割
@@ -88,23 +108,30 @@ const loadData = async (webpages: string[]) => {
       const content = await scrapePage(url);
       console.log(`爬取完成: ${url}, 内容长度: ${content.length}`);
       
+      // 提取模型名称
+      const modelName = extractModelName(url);
+      console.log(`提取的模型名称: ${modelName}`);
+      
       const chunks = await splitter.splitText(content);
 
       for (let chunk of chunks){
-      const { embedding } = await embed({
-        model: openai.embedding('text-embedding-3-small'),
-        value: chunks[0]
-      })
-      console.log('向量'+embedding);
+        const { embedding } = await embed({
+          model: openai.embedding('text-embedding-3-small'),
+          value: chunk
+        })
+        console.log('向量长度:', embedding.length);
 
-      const {error} = await supabase.from('djichunks').insert({
-        content: chunks[0],
-        vector: embedding,
-        url: url
-      })
-      if(error){
-          console.log(error)
-      }
+        const {error} = await supabase.from('djichunks').insert({
+          content: chunk,
+          vector: embedding,
+          url: url,
+          model_name: modelName
+        })
+        if(error){
+            console.log('插入错误:', error)
+        } else {
+            console.log(`成功插入数据块，模型: ${modelName}`);
+        }
       }
     }
 }
@@ -112,4 +139,6 @@ const loadData = async (webpages: string[]) => {
 // 知识库的来源，可配置
 loadData([
   "https://www.dji.com/cn/mavic-4-pro/specs",
+  "https://www.dji.com/cn/mini-4-pro/specs",
+  "https://www.dji.com/cn/air-3s/specs"
 ]);
