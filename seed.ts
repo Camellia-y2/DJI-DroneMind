@@ -140,5 +140,8 @@ const loadData = async (webpages: string[]) => {
 loadData([
   "https://www.dji.com/cn/mavic-4-pro/specs",
   "https://www.dji.com/cn/mini-4-pro/specs",
-  "https://www.dji.com/cn/air-3s/specs"
+  "https://www.dji.com/cn/air-3s/specs",
+  "https://www.dji.com/cn/neo/specs",
+  "https://www.dji.com/cn/inspire-3/specs",
+  "https://www.dji.com/cn/avata-2/specs"
 ]);
