@@ -69,6 +69,7 @@ OPENAI_API_BASE_URL=openai_base_url
 | content | text | 文本内容（必需） |
 | vector | vector(1536) | OpenAI embedding 向量 |
 | url | text | 来源 URL |
+| model_name | text | 无人机模型名称 |
 | date_updated | timestamp | 最后更新时间，自动设置 |
 
 
@@ -86,6 +87,7 @@ OPENAI_API_BASE_URL=openai_base_url
 - `id` - 文档块 ID
 - `content` - 文本内容
 - `url` - 来源 URL
+- `model_name` - 无人机模型名称
 - `date_updated` - 更新时间
 - `similarity` - 相似度分数（0-1）
 
@@ -102,9 +104,10 @@ SELECT * FROM get_relevant_chunks(
 ### 1. 插入知识块
 
 ```sql
-INSERT INTO public.DJIChunks (content, url) VALUES (
-    'DJI Mini 3 是一款轻便的消费级无人机，重量不到 249 克，具有 4K 摄像功能。',
-    'https://www.dji.com/mini-3'
+INSERT INTO public.djichunks (content, url, model_name) VALUES (
+    'DJI Mavic 4 Pro 是一款专业级无人机，具有先进的避障系统和高质量摄像功能。',
+    'https://www.dji.com/cn/mavic-4-pro/specs',
+    'mavic-4-pro'
 );
 ```
 
@@ -131,15 +134,21 @@ SELECT * FROM get_relevant_chunks(
 
 ```sql
 -- 查看表中所有数据
-SELECT id, content, url, date_updated 
-FROM public.DJIChunks 
+SELECT id, content, url, model_name, date_updated 
+FROM public.djichunks 
 ORDER BY date_updated DESC;
 
 -- 查看有向量的数据
-SELECT id, content, url, date_updated 
-FROM public.DJIChunks 
+SELECT id, content, url, model_name, date_updated 
+FROM public.djichunks 
 WHERE vector IS NOT NULL
 ORDER BY date_updated DESC;
+
+-- 按模型查看数据
+SELECT model_name, COUNT(*) as chunk_count
+FROM public.djichunks 
+GROUP BY model_name
+ORDER BY chunk_count DESC;
 ```
 
 ## 性能优化

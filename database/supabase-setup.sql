@@ -10,12 +10,16 @@ CREATE TABLE public.djichunks (
     content text NOT NULL,
     vector vector(1536) NULL,
     url text NULL,
+    model_name text NULL,
     date_updated timestamp without time zone DEFAULT now(),
     CONSTRAINT chunks_pkey PRIMARY KEY (id)
 );
 
 -- 创建向量索引
-CREATE INDEX djichunks_vector_idx ON public.djihunks USING hnsw (vector vector_cosine_ops);
+CREATE INDEX djichunks_vector_idx ON public.djichunks USING hnsw (vector vector_cosine_ops);
+
+-- 删除函数（选）
+DROP FUNCTION get_relevant_chunks(vector,double precision,integer)
 
 -- 创建相似度搜索函数
 CREATE OR REPLACE FUNCTION get_relevant_chunks(
@@ -27,6 +31,7 @@ RETURNS TABLE (
     id uuid,
     content text,
     url text,
+    model_name text,
     date_updated timestamp,
     similarity float
 )
@@ -36,6 +41,7 @@ AS $$
         id,
         content,
         url,
+        model_name,
         date_updated,
         1 - (djichunks.vector <=> query_vector) as similarity
     FROM djichunks
